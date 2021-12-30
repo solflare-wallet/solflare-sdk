@@ -45,9 +45,9 @@ export default class Solflare extends EventEmitter {
       method: 'disconnect'
     });
 
-    this.emit('disconnect');
-
     this._disconnected();
+
+    this.emit('disconnect');
   }
 
   async signTransaction (transaction: Transaction): Promise<Transaction> {
@@ -128,8 +128,6 @@ export default class Solflare extends EventEmitter {
   private _handleEvent = (event: SolflareIframeEvent) => {
     switch (event.type) {
       case 'connect': {
-        this.emit('connect');
-
         this._collapseIframe();
 
         this._isConnected = true;
@@ -141,17 +139,21 @@ export default class Solflare extends EventEmitter {
           this._messageHandlers['connect'].resolve();
           delete this._messageHandlers['connect'];
         }
+
+        this.emit('connect', this._publicKey);
+
         return;
       }
       case 'disconnect': {
-        this.emit('disconnect');
-
         this._disconnected();
 
         if (this._messageHandlers['connect']) {
           this._messageHandlers['connect'].reject();
           delete this._messageHandlers['connect'];
         }
+
+        this.emit('disconnect');
+
         return;
       }
       case 'collapse': {
@@ -232,7 +234,7 @@ export default class Solflare extends EventEmitter {
     this._element = document.createElement('div');
     this._element.className = 'solflare-wallet-adapter-iframe';
     this._element.innerHTML = `
-      <iframe src='${iframeUrl}' style='position: fixed; top: 0; bottom: 0; left: 0; right: 0; width: 100%; height: 100%; border: none; border-radius: 0; z-index: 99999;'></iframe>
+      <iframe src='${iframeUrl}' style='position: fixed; top: 0; bottom: 0; left: 0; right: 0; width: 100%; height: 100%; border: none; border-radius: 0; z-index: 99999; color-scheme: auto;' allowtransparency='true'></iframe>
     `;
     document.body.appendChild(this._element);
     this._iframe = this._element.querySelector('iframe');

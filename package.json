@@ -15,7 +15,8 @@
     "build:esm": "tsc",
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build": "npm run build:esm && npm run build:cjs",
-    "example:start": "webpack serve --config webpack.example.config.js"
+    "example:start": "webpack serve --config webpack.example.config.js",
+    "deploy": "npm run build && npm publish --access public"
   },
   "files": [
     "src/",
