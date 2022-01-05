@@ -7,6 +7,7 @@ export default class WebAdapter extends WalletAdapter {
   private _instance: Wallet | null = null;
   private _provider: string;
   private _network: Cluster;
+  private _pollTimer: number;
 
   get publicKey () {
     return this._instance!.publicKey || null;
@@ -28,6 +29,13 @@ export default class WebAdapter extends WalletAdapter {
 
     this._instance.on('connect', this._handleConnect);
     this._instance.on('disconnect', this._handleDisconnect);
+
+    this._pollTimer = window.setInterval(() => {
+      // @ts-ignore
+      if (this._instance?._popup?.closed !== false) {
+        this._handleDisconnect();
+      }
+    }, 200);
 
     await this._instance.connect();
   }
@@ -78,6 +86,7 @@ export default class WebAdapter extends WalletAdapter {
   };
 
   private _handleDisconnect = () => {
+    window.clearInterval(this._pollTimer);
     this.emit('disconnect');
   };
 }
