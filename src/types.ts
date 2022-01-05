@@ -22,9 +22,11 @@ export interface SolflareIframeMessage {
   error?: unknown;
 }
 
+export type PromiseCallback = (...args: unknown[]) => unknown;
+
 export type MessageHandlers = {
   [id: string]: {
-    resolve: (...args: unknown[]) => unknown,
-    reject: (...args: unknown[]) => unknown
+    resolve: PromiseCallback,
+    reject: PromiseCallback
   }
 }

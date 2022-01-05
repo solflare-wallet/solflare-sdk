@@ -1,31 +1,39 @@
-import { Cluster, PublicKey, Transaction } from '@solana/web3.js';
-import { MessageHandlers, SolflareConfig, SolflareIframeEvent, SolflareIframeMessage, SolflareIframeRequest } from './types';
+import { Cluster, Transaction } from '@solana/web3.js';
+import {
+  PromiseCallback,
+  SolflareConfig,
+  SolflareIframeEvent,
+  SolflareIframeMessage
+} from './types';
 import EventEmitter from 'eventemitter3';
-import { v4 as uuidv4 } from 'uuid';
-import bs58 from 'bs58';
+import WalletAdapter from './adapters/base';
+import WebAdapter from './adapters/web';
+import IframeAdapter from './adapters/iframe';
 
 export default class Solflare extends EventEmitter {
   private _network: Cluster = 'mainnet-beta';
-  private _isConnected: boolean = false;
-  private _publicKey: PublicKey | null = null;
+  private _adapterInstance: WalletAdapter | null = null;
   private _element: HTMLElement | null = null;
   private _iframe: HTMLIFrameElement | null = null;
-  private _messageHandlers: MessageHandlers = {};
+  private _connectHandler: { resolve: PromiseCallback, reject: PromiseCallback } | null = null;
 
-  private static IFRAME_URL = 'https://connect.solflare.com/';
-  // private static IFRAME_URL = 'http://localhost:3090/';
+  // private static IFRAME_URL = 'https://connect.solflare.com/';
+  private static IFRAME_URL = 'http://localhost:3090/';
 
   constructor (config: SolflareConfig) {
     super();
-    this._network = config?.network || 'mainnet-beta';
+
+    if (config?.network) {
+      this._network = config?.network;
+    }
   }
 
   get publicKey () {
-    return this._publicKey || null;
+    return this._adapterInstance?.publicKey || null;
   }
 
   get connected () {
-    return this._isConnected;
+    return !!this._adapterInstance?.connected;
   }
 
   async connect () {
@@ -36,14 +44,16 @@ export default class Solflare extends EventEmitter {
     this._injectElement();
 
     await new Promise((resolve, reject) => {
-      this._messageHandlers['connect'] = { resolve, reject };
+      this._connectHandler = { resolve, reject };
     });
   }
 
   async disconnect () {
-    await this._sendMessage({
-      method: 'disconnect'
-    });
+    if (!this._adapterInstance) {
+      return;
+    }
+
+    await this._adapterInstance.disconnect();
 
     this._disconnected();
 
@@ -55,26 +65,7 @@ export default class Solflare extends EventEmitter {
       throw new Error('Wallet not connected');
     }
 
-    try {
-      const serialized = transaction.serialize({
-        requireAllSignatures: false,
-        verifySignatures: false
-      });
-
-      const result = await this._sendMessage({
-        method: 'signTransaction',
-        params: {
-          transaction: bs58.encode(serialized)
-        }
-      });
-
-      const transactionBytes = bs58.decode(result as string);
-
-      return Transaction.from(transactionBytes);
-    } catch (e) {
-      console.log(e);
-      throw new Error('Failed to sign transaction');
-    }
+    return await this._adapterInstance!.signTransaction(transaction);
   }
 
   async signAllTransactions (transactions: Transaction[]): Promise<Transaction[]> {
@@ -82,26 +73,7 @@ export default class Solflare extends EventEmitter {
       throw new Error('Wallet not connected');
     }
 
-    try {
-      const txs = transactions.map((transaction) => transaction.serialize({
-        requireAllSignatures: false,
-        verifySignatures: false
-      })).map((transaction) => bs58.encode(transaction))
-
-      const result = await this._sendMessage({
-        method: 'signAllTransactions',
-        params: {
-          transactions: txs
-        }
-      });
-
-      return (result as string[])
-        .map((transaction) => bs58.decode(transaction))
-        .map((transaction) => Transaction.from(transaction));
-    } catch (e) {
-      console.log(e);
-      throw new Error('Failed to sign transactions');
-    }
+    return await this._adapterInstance!.signAllTransactions(transactions);
   }
 
   async signMessage (data: Buffer | Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
@@ -109,48 +81,49 @@ export default class Solflare extends EventEmitter {
       throw new Error('Wallet not connected');
     }
 
-    try {
-      const result = await this._sendMessage({
-        method: 'signMessage',
-        params: {
-          data: bs58.encode(data),
-          display
-        }
-      });
-
-      return bs58.decode(result as string);
-    } catch (e) {
-      console.log(e);
-      throw new Error('Failed to sign message');
-    }
+    return await this._adapterInstance!.signMessage(data, display);
   }
 
   private _handleEvent = (event: SolflareIframeEvent) => {
     switch (event.type) {
+      case 'connect_native_web': {
+        this._collapseIframe();
+
+        this._adapterInstance = new WebAdapter(this._iframe!, this._network, event.data?.provider || 'https://solflare.com/provider');
+
+        this._adapterInstance.on('connect', this._webConnected);
+        this._adapterInstance.on('disconnect', this._webDisconnected);
+
+        this._adapterInstance.connect();
+
+        this._setPreferredAdapter('native_web');
+
+        return;
+      }
       case 'connect': {
         this._collapseIframe();
 
-        this._isConnected = true;
-        this._publicKey = new PublicKey(event.data?.publicKey);
+        this._adapterInstance = new IframeAdapter(this._iframe!, event.data?.publicKey || '');
+        this._adapterInstance.connect();
 
         this._setPreferredAdapter(event.data?.adapter);
 
-        if (this._messageHandlers['connect']) {
-          this._messageHandlers['connect'].resolve();
-          delete this._messageHandlers['connect'];
+        if (this._connectHandler) {
+          this._connectHandler.resolve();
+          this._connectHandler = null;
         }
 
-        this.emit('connect', this._publicKey);
+        this.emit('connect', this.publicKey);
 
         return;
       }
       case 'disconnect': {
-        this._disconnected();
-
-        if (this._messageHandlers['connect']) {
-          this._messageHandlers['connect'].reject();
-          delete this._messageHandlers['connect'];
+        if (this._connectHandler) {
+          this._connectHandler.reject();
+          this._connectHandler = null;
         }
+
+        this._disconnected();
 
         this.emit('disconnect');
 
@@ -175,34 +148,9 @@ export default class Solflare extends EventEmitter {
 
     if (data.type === 'event') {
       this._handleEvent(data.event!);
-    } else if (this._messageHandlers[data.id]) {
-      const { resolve, reject } = this._messageHandlers[data.id];
-
-      delete this._messageHandlers[data.id];
-
-      if (data.error) {
-        reject(data.error);
-      } else {
-        resolve(data.result);
-      }
+    } else if (this._adapterInstance) {
+      this._adapterInstance.handleMessage(data);
     }
-  }
-
-  private _sendMessage = (data: SolflareIframeRequest) => {
-    if (!this.connected) {
-      throw new Error('Wallet not connected');
-    }
-
-    return new Promise((resolve, reject) => {
-      const messageId = uuidv4();
-
-      this._messageHandlers[messageId] = { resolve, reject };
-
-      this._iframe?.contentWindow?.postMessage({
-        channel: 'solflareWalletAdapterToIframe',
-        data: { id: messageId, ...data }
-      }, '*');
-    });
   }
 
   private _removeElement = () => {
@@ -270,13 +218,32 @@ export default class Solflare extends EventEmitter {
     }
   };
 
+  private _webConnected = () => {
+    if (this._connectHandler) {
+      this._connectHandler.resolve();
+      this._connectHandler = null;
+    }
+
+    this.emit('connect', this.publicKey);
+  };
+
+  private _webDisconnected = () => {
+    if (this._connectHandler) {
+      this._connectHandler.reject();
+      this._connectHandler = null;
+    }
+
+    this._disconnected();
+
+    this.emit('disconnect');
+  };
+
   private _disconnected = () => {
     window.removeEventListener('message', this._handleMessage, false);
     this._removeElement();
 
     this._clearPreferredAdapter();
 
-    this._isConnected = false;
-    this._publicKey = null;
+    this._adapterInstance = null;
   }
 }
