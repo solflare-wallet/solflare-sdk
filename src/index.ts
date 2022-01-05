@@ -17,8 +17,8 @@ export default class Solflare extends EventEmitter {
   private _iframe: HTMLIFrameElement | null = null;
   private _connectHandler: { resolve: PromiseCallback, reject: PromiseCallback } | null = null;
 
-  // private static IFRAME_URL = 'https://connect.solflare.com/';
-  private static IFRAME_URL = 'http://localhost:3090/';
+  private static IFRAME_URL = 'https://connect.solflare.com/';
+  // private static IFRAME_URL = 'http://localhost:3090/';
 
   constructor (config: SolflareConfig) {
     super();
