@@ -42,6 +42,6 @@ class Solflare extends EventEmitter {
 
   signTransaction(transaction: Transaction): Promise<Transaction>;
   signAllTransactions(transactions: Transaction[]): Promise<Transaction[]>;
-  signMessage(data: Buffer | Uint8Array, display?: 'hex' | 'utf8'): Promise<Uint8Array>;
+  signMessage(data: Uint8Array, display?: 'hex' | 'utf8'): Promise<Uint8Array>;
 }
 ```

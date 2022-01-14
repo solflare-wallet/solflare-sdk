@@ -67,13 +67,13 @@ export default class WebAdapter extends WalletAdapter {
     return await this._instance!.signAllTransactions(transactions);
   }
 
-  async signMessage (data: Buffer | Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
+  async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
     const { signature } = await this._instance!.sign(data, display);
-    return signature;
+    return Uint8Array.from(signature);
   }
 
   // @ts-ignore

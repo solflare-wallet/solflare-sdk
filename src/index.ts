@@ -18,7 +18,7 @@ export default class Solflare extends EventEmitter {
   private _connectHandler: { resolve: PromiseCallback, reject: PromiseCallback } | null = null;
 
   private static IFRAME_URL = 'https://connect.solflare.com/';
-  // private static IFRAME_URL = 'http://localhost:3090/';
+  // private static IFRAME_URL = `http://${window.location.hostname}:3090/`;
 
   constructor (config: SolflareConfig) {
     super();
@@ -76,7 +76,7 @@ export default class Solflare extends EventEmitter {
     return await this._adapterInstance!.signAllTransactions(transactions);
   }
 
-  async signMessage (data: Buffer | Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
+  async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
@@ -187,6 +187,9 @@ export default class Solflare extends EventEmitter {
     document.body.appendChild(this._element);
     this._iframe = this._element.querySelector('iframe');
 
+    // @ts-ignore
+    window.fromFlutter = this._handleMobileMessage;
+
     window.addEventListener('message', this._handleMessage, false);
   }
 
@@ -246,4 +249,11 @@ export default class Solflare extends EventEmitter {
 
     this._adapterInstance = null;
   }
+
+  private _handleMobileMessage = (data) => {
+    this._iframe?.contentWindow?.postMessage({
+      channel: 'solflareMobileToIframe',
+      data
+    }, '*');
+  };
 }

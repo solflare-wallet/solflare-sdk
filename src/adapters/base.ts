@@ -10,6 +10,6 @@ export default abstract class WalletAdapter extends EventEmitter {
   abstract disconnect (): Promise<void>;
   abstract signTransaction (transaction: Transaction): Promise<Transaction>;
   abstract signAllTransactions (transactions: Transaction[]): Promise<Transaction[]>;
-  abstract signMessage (data: Buffer | Uint8Array, display: 'hex' | 'utf8'): Promise<Uint8Array>;
+  abstract signMessage (data: Uint8Array, display: 'hex' | 'utf8'): Promise<Uint8Array>;
   abstract handleMessage (data: SolflareIframeMessage): void;
 }

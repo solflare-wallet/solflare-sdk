@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import './App.css';
 import Solflare from '../';
 import { Transaction } from '@solana/web3.js';
 
@@ -51,6 +50,8 @@ export default class App extends Component {
     try {
       const tx = await this.solflare.signTransaction(this.createTransaction(this.solflare.publicKey));
 
+      document.body.append(JSON.stringify(tx));
+
       console.log(tx);
     } catch (e) {
       console.log(e);
@@ -61,6 +62,8 @@ export default class App extends Component {
     try {
       const txs = await this.solflare.signAllTransactions([ this.createTransaction(this.solflare.publicKey), this.createTransaction(this.solflare.publicKey) ]);
 
+      document.body.append(JSON.stringify(txs));
+
       console.log(txs);
     } catch (e) {
       console.log(e);
@@ -70,6 +73,8 @@ export default class App extends Component {
   handleSignMessage = async () => {
     try {
       const signature = await this.solflare.signMessage((new TextEncoder()).encode('Test message'), 'utf8');
+
+      document.body.append(JSON.stringify(signature));
 
       console.log(signature);
     } catch (e) {

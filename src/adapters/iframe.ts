@@ -87,7 +87,7 @@ export default class IframeAdapter extends WalletAdapter {
     }
   }
 
-  async signMessage (data: Buffer | Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
+  async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
@@ -96,12 +96,12 @@ export default class IframeAdapter extends WalletAdapter {
       const result = await this._sendMessage({
         method: 'signMessage',
         params: {
-          data: bs58.encode(data),
+          data,
           display
         }
       });
 
-      return bs58.decode(result as string);
+      return Uint8Array.from(bs58.decode(result as string));
     } catch (e) {
       console.log(e);
       throw new Error('Failed to sign message');
@@ -137,5 +137,5 @@ export default class IframeAdapter extends WalletAdapter {
         data: { id: messageId, ...data }
       }, '*');
     });
-  }
+  };
 }
