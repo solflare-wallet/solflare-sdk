@@ -17,10 +17,10 @@ export default class IframeAdapter extends WalletAdapter {
     return true;
   }
 
-  constructor (iframe: HTMLIFrameElement, publicKey: PublicKey) {
+  constructor (iframe: HTMLIFrameElement, publicKey: any) {
     super();
     this._iframe = iframe;
-    this._publicKey = publicKey;
+    this._publicKey = new PublicKey(publicKey?.toString?.());
   }
 
   async connect () {
