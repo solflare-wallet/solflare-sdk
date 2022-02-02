@@ -34,8 +34,16 @@ export default class Solflare extends EventEmitter {
     return this._adapterInstance?.publicKey || null;
   }
 
-  get connected () {
+  get isConnected () {
     return !!this._adapterInstance?.connected;
+  }
+
+  get connected () {
+    return this.isConnected;
+  }
+
+  get autoApprove () {
+    return false;
   }
 
   async connect () {
@@ -78,12 +86,16 @@ export default class Solflare extends EventEmitter {
     return await this._adapterInstance!.signAllTransactions(transactions);
   }
 
-  async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
+  async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
     return await this._adapterInstance!.signMessage(data, display);
+  }
+
+  async sign (data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array> {
+    return await this.signMessage(data, display);
   }
 
   private _handleEvent = (event: SolflareIframeEvent) => {

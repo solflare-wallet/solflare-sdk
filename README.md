@@ -33,15 +33,18 @@ try {
 ```javascript
 class Solflare extends EventEmitter {
   publicKey: PublicKey | null;
-  connected: boolean;
+  isConnected: boolean;
+  connected: boolean; // for SOL Wallet Adapter compatibility
+  autoApprove: boolean; // for SOL Wallet Adapter compatibility
 
-  constructor(config: SolflareConfig);
+  constructor(config: { network?: string });
 
   connect(): Promise<void>;
   disconnect(): Promise<void>;
 
   signTransaction(transaction: Transaction): Promise<Transaction>;
   signAllTransactions(transactions: Transaction[]): Promise<Transaction[]>;
-  signMessage(data: Uint8Array, display?: 'hex' | 'utf8'): Promise<Uint8Array>;
+  signMessage(data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array>;
+  sign(data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array>; // for SOL Wallet Adapter compatibility
 }
 ```
