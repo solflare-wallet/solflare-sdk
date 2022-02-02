@@ -17,6 +17,8 @@ export default class Solflare extends EventEmitter {
   private _iframe: HTMLIFrameElement | null = null;
   private _connectHandler: { resolve: PromiseCallback, reject: PromiseCallback } | null = null;
 
+  private _flutterHandlerInterval: any = null;
+
   private static IFRAME_URL = 'https://connect.solflare.com/';
   // private static IFRAME_URL = `http://${window.location.hostname}:3090/`;
 
@@ -154,6 +156,12 @@ export default class Solflare extends EventEmitter {
   }
 
   private _removeElement = () => {
+    if (this._flutterHandlerInterval !== null) {
+      clearInterval(this._flutterHandlerInterval);
+      this._flutterHandlerInterval = null;
+    }
+
+
     if (this._element) {
       this._element.remove();
       this._element = null;
@@ -189,6 +197,10 @@ export default class Solflare extends EventEmitter {
 
     // @ts-ignore
     window.fromFlutter = this._handleMobileMessage;
+    this._flutterHandlerInterval = setInterval(() => {
+      // @ts-ignore
+      window.fromFlutter = this._handleMobileMessage;
+    }, 100);
 
     window.addEventListener('message', this._handleMessage, false);
   }
