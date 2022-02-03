@@ -39,21 +39,16 @@ export default class IframeAdapter extends WalletAdapter {
     }
 
     try {
-      const serialized = transaction.serialize({
-        requireAllSignatures: false,
-        verifySignatures: false
-      });
-
-      const result = await this._sendMessage({
+      const { publicKey, signature } = await this._sendMessage({
         method: 'signTransaction',
         params: {
-          transaction: bs58.encode(serialized)
+          message: bs58.encode(transaction.serializeMessage())
         }
-      });
+      }) as { publicKey: string, signature: string };
 
-      const transactionBytes = bs58.decode(result as string);
+      transaction.addSignature(new PublicKey(publicKey), bs58.decode(signature));
 
-      return Transaction.from(transactionBytes);
+      return transaction;
     } catch (e) {
       console.log(e);
       throw new Error('Failed to sign transaction');
@@ -66,21 +61,17 @@ export default class IframeAdapter extends WalletAdapter {
     }
 
     try {
-      const txs = transactions.map((transaction) => transaction.serialize({
-        requireAllSignatures: false,
-        verifySignatures: false
-      })).map((transaction) => bs58.encode(transaction))
-
-      const result = await this._sendMessage({
+      const { publicKey, signatures } = await this._sendMessage({
         method: 'signAllTransactions',
         params: {
-          transactions: txs
+          messages: transactions.map((transaction) => bs58.encode(transaction.serializeMessage()))
         }
-      });
+      }) as { publicKey: string, signatures: string[] };
 
-      return (result as string[])
-        .map((transaction) => bs58.decode(transaction))
-        .map((transaction) => Transaction.from(transaction));
+      return transactions.map((tx, id) => {
+        tx.addSignature(new PublicKey(publicKey), bs58.decode(signatures[id]));
+        return tx;
+      });
     } catch (e) {
       console.log(e);
       throw new Error('Failed to sign transactions');

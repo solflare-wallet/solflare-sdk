@@ -21,6 +21,7 @@ export default class Solflare extends EventEmitter {
 
   private static IFRAME_URL = 'https://connect.solflare.com/';
   // private static IFRAME_URL = `http://${window.location.hostname}:3090/`;
+  // private static IFRAME_URL = `http://localhost:3090/`;
 
   constructor (config: SolflareConfig) {
     super();
