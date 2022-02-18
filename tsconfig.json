@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "baseUrl": "./src",
-    "target": "ES5",
-    "module": "ESNext",
     "outDir": "./lib/esm",
+    "target": "ES5",
+    "module": "ES6",
     "lib": [
       "dom",
       "dom.iterable",

@@ -20,8 +20,9 @@ export default class Solflare extends EventEmitter {
   private _flutterHandlerInterval: any = null;
 
   private static IFRAME_URL = 'https://connect.solflare.com/';
+  private static DETECT_IFRAME_URL = 'https://connect.solflare.com/detect';
 
-  constructor (config: SolflareConfig) {
+  constructor (config?: SolflareConfig) {
     super();
 
     if (config?.network) {
@@ -95,6 +96,53 @@ export default class Solflare extends EventEmitter {
 
   async sign (data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array> {
     return await this.signMessage(data, display);
+  }
+
+  async detectWallet (timeout = 10): Promise<boolean> {
+    return new Promise((resolve) => {
+      let element: HTMLElement | null = null;
+
+      function handleDetected (detected) {
+        cleanUp();
+
+        resolve(detected);
+      }
+
+      let timeoutHandler: NodeJS.Timeout | null = setTimeout(() => {
+        handleDetected(false);
+      }, timeout * 1000);
+
+      function cleanUp () {
+        window.removeEventListener('message', handleMessage, false);
+
+        if (element) {
+          document.body.removeChild(element);
+          element = null;
+        }
+
+        if (timeoutHandler) {
+          clearTimeout(timeoutHandler);
+          timeoutHandler = null;
+        }
+      }
+
+      function handleMessage (event: MessageEvent) {
+        if (event.data?.channel !== 'solflareDetectorToAdapter') {
+          return;
+        }
+
+        handleDetected(!!event.data?.data?.detected);
+      }
+
+      window.addEventListener('message', handleMessage, false);
+
+      element = document.createElement('div');
+      element.className = 'solflare-wallet-detect-iframe';
+      element.innerHTML = `
+        <iframe src='${Solflare.DETECT_IFRAME_URL}?timeout=${timeout}' style='position: fixed; top: -9999px; left: -9999px; width: 0; height: 0; pointer-events: none; border: none;'></iframe>
+      `;
+      document.body.appendChild(element);
+    });
   }
 
   private _handleEvent = (event: SolflareIframeEvent) => {

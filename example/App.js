@@ -14,6 +14,10 @@ export default class App extends Component {
     connected: false
   }
 
+  componentDidMount () {
+    this.solflare.detectWallet().then((detected) => console.log('Wallet detected', detected));
+  }
+
   createTransaction = (publicKey) => {
     const transaction = new Transaction();
     transaction.recentBlockhash = '8sUFDJ1rRV478F2ExDLWpzrvY7Pr6LyM6K2kw7ipzmoS';
