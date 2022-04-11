@@ -12,6 +12,7 @@ import IframeAdapter from './adapters/iframe';
 
 export default class Solflare extends EventEmitter {
   private _network: Cluster = 'mainnet-beta';
+  private _provider: string | null = null;
   private _adapterInstance: WalletAdapter | null = null;
   private _element: HTMLElement | null = null;
   private _iframe: HTMLIFrameElement | null = null;
@@ -27,6 +28,10 @@ export default class Solflare extends EventEmitter {
 
     if (config?.network) {
       this._network = config?.network;
+    }
+
+    if (config?.provider) {
+      this._provider = config?.provider;
     }
   }
 
@@ -150,7 +155,7 @@ export default class Solflare extends EventEmitter {
       case 'connect_native_web': {
         this._collapseIframe();
 
-        this._adapterInstance = new WebAdapter(this._iframe!, this._network, event.data?.provider || 'https://solflare.com/provider');
+        this._adapterInstance = new WebAdapter(this._iframe!, this._network, event.data?.provider || this._provider || 'https://solflare.com/provider');
 
         this._adapterInstance.on('connect', this._webConnected);
         this._adapterInstance.on('disconnect', this._webDisconnected);

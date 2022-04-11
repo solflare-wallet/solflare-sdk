@@ -1,7 +1,8 @@
 import { Cluster } from '@solana/web3.js';
 
 export interface SolflareConfig {
-  network?: Cluster
+  network?: Cluster,
+  provider?: string
 }
 
 export interface SolflareIframeEvent {
