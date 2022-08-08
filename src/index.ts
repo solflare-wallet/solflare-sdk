@@ -3,7 +3,8 @@ import {
   PromiseCallback,
   SolflareConfig,
   SolflareIframeEvent,
-  SolflareIframeMessage
+  SolflareIframeMessage,
+  SolflareIframeResizeMessage
 } from './types';
 import EventEmitter from 'eventemitter3';
 import WalletAdapter from './adapters/base';
@@ -167,8 +168,6 @@ export default class Solflare extends EventEmitter {
         return;
       }
       case 'connect': {
-        this._collapseIframe();
-
         this._adapterInstance = new IframeAdapter(this._iframe!, event.data?.publicKey || '');
         this._adapterInstance.connect();
 
@@ -205,6 +204,25 @@ export default class Solflare extends EventEmitter {
     }
   }
 
+  private _handleResize = (data: SolflareIframeResizeMessage) => {
+    if (data.resizeMode === 'full') {
+      if (data.params.mode === 'fullscreen') {
+        this._expandIframe();
+      } else if (data.params.mode === 'hide') {
+        this._collapseIframe();
+      }
+    } else if (data.resizeMode === 'coordinates') {
+      if (this._iframe) {
+        this._iframe.style.top = isFinite(data.params.top as number) ? `${data.params.top}px` : '';
+        this._iframe.style.bottom = isFinite(data.params.bottom as number) ? `${data.params.bottom}px` : '';
+        this._iframe.style.left = isFinite(data.params.left as number) ? `${data.params.left}px` : '';
+        this._iframe.style.right = isFinite(data.params.right as number) ? `${data.params.right}px` : '';
+        this._iframe.style.width = isFinite(data.params.width as number) ? `${data.params.width}px` : (data.params.width as string);
+        this._iframe.style.height = isFinite(data.params.height as number) ? `${data.params.height}px` : (data.params.height as string);
+      }
+    }
+  }
+
   private _handleMessage = (event: MessageEvent) => {
     if (event.data?.channel !== 'solflareIframeToWalletAdapter') {
       return;
@@ -213,9 +231,13 @@ export default class Solflare extends EventEmitter {
     const data: SolflareIframeMessage = event.data.data || {};
 
     if (data.type === 'event') {
-      this._handleEvent(data.event!);
-    } else if (this._adapterInstance) {
-      this._adapterInstance.handleMessage(data);
+      this._handleEvent(data.event);
+    } else if (data.type === 'resize') {
+      this._handleResize(data);
+    } else if (data.type === 'response') {
+      if (this._adapterInstance) {
+        this._adapterInstance.handleMessage(data);
+      }
     }
   }
 
@@ -245,7 +267,7 @@ export default class Solflare extends EventEmitter {
     this._removeElement();
     this._removeDanglingElements();
 
-    let iframeUrl = `${Solflare.IFRAME_URL}?cluster=${encodeURIComponent(this._network)}&origin=${encodeURIComponent(window.location.origin)}`;
+    let iframeUrl = `${Solflare.IFRAME_URL}?cluster=${encodeURIComponent(this._network)}&origin=${encodeURIComponent(window.location.origin)}&version=1`;
     const preferredAdapter = this._getPreferredAdapter();
     if (preferredAdapter) {
       iframeUrl += `&adapter=${encodeURIComponent(preferredAdapter)}`;
@@ -277,6 +299,17 @@ export default class Solflare extends EventEmitter {
       this._iframe.style.width = '2px';
     }
   }
+
+  private _expandIframe = () => {
+    if (this._iframe) {
+      this._iframe.style.top = '0px';
+      this._iframe.style.bottom = '0px';
+      this._iframe.style.left = '0px';
+      this._iframe.style.right = '0px';
+      this._iframe.style.width = '100%';
+      this._iframe.style.height = '100%';
+    }
+  };
 
   private _getPreferredAdapter = () => {
     if (localStorage) {
