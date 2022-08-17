@@ -1,6 +1,6 @@
 {
   "name": "@solflare-wallet/sdk",
-  "version": "1.0.12",
+  "version": "1.1.0-rc1",
   "description": "",
   "repository": "https://github.com/solflare-wallet/solflare-sdk",
   "author": "Solflare Developers <developers@solflare.com>",
@@ -16,7 +16,8 @@
     "build:cjs": "tsc --project tsconfig.cjs.json",
     "build": "npm run build:esm && npm run build:cjs",
     "example:start": "webpack serve --config webpack.example.config.js",
-    "deploy": "npm run build && npm publish --access public"
+    "deploy": "npm run build && npm publish --access public",
+    "deploy:next": "npm run build && npm publish --access public --tag next"
   },
   "files": [
     "src/",
