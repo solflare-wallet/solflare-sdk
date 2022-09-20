@@ -1,4 +1,4 @@
-import { MessageHandlers, SolflareIframeMessage, SolflareIframeRequest } from '../types';
+import { MessageHandlers, SolflareIframeRequest, SolflareIframeResponseMessage } from '../types';
 import { PublicKey } from '@solana/web3.js';
 import WalletAdapter from './base';
 import { v4 as uuidv4 } from 'uuid';
@@ -94,7 +94,7 @@ export default class IframeAdapter extends WalletAdapter {
     }
   }
 
-  handleMessage = (data: SolflareIframeMessage) => {
+  handleMessage = (data: SolflareIframeResponseMessage) => {
     if (this._messageHandlers[data.id]) {
       const { resolve, reject } = this._messageHandlers[data.id];
 

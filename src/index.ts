@@ -4,6 +4,7 @@ import {
   SolflareConfig,
   SolflareIframeEvent,
   SolflareIframeMessage,
+  SolflareIframeResizeMessage,
   TransactionOrVersionedTransaction
 } from './types';
 import EventEmitter from 'eventemitter3';
@@ -22,8 +23,9 @@ export default class Solflare extends EventEmitter {
 
   private _flutterHandlerInterval: any = null;
 
-  private static IFRAME_URL = 'https://connect.solflare.com/';
-  private static DETECT_IFRAME_URL = 'https://connect.solflare.com/detect';
+  // private static IFRAME_URL = 'https://connect.solflare.com/';
+  // private static IFRAME_URL = 'http://localhost:3090/';
+  private static IFRAME_URL = 'https://feature-react-refactor.d3jmxkbfuqcbli.amplifyapp.com/';
 
   constructor (config?: SolflareConfig) {
     super();
@@ -146,49 +148,25 @@ export default class Solflare extends EventEmitter {
   }
 
   async detectWallet (timeout = 10): Promise<boolean> {
+    if ((window as any).SolflareApp || (window as any).solflare?.isSolflare) {
+      return true;
+    }
+
     return new Promise((resolve) => {
-      let element: HTMLElement | null = null;
+      let pollInterval, pollTimeout;
 
-      function handleDetected (detected) {
-        cleanUp();
+      pollInterval = setInterval(() => {
+        if ((window as any).SolflareApp || (window as any).solflare?.isSolflare) {
+          clearInterval(pollInterval);
+          clearTimeout(pollTimeout);
+          resolve(true);
+        }
+      }, 500);
 
-        resolve(detected);
-      }
-
-      let timeoutHandler: NodeJS.Timeout | null = setTimeout(() => {
-        handleDetected(false);
+      pollTimeout = setTimeout(() => {
+        clearInterval(pollInterval);
+        resolve(false);
       }, timeout * 1000);
-
-      function cleanUp () {
-        window.removeEventListener('message', handleMessage, false);
-
-        if (element) {
-          document.body.removeChild(element);
-          element = null;
-        }
-
-        if (timeoutHandler) {
-          clearTimeout(timeoutHandler);
-          timeoutHandler = null;
-        }
-      }
-
-      function handleMessage (event: MessageEvent) {
-        if (event.data?.channel !== 'solflareDetectorToAdapter') {
-          return;
-        }
-
-        handleDetected(!!event.data?.data?.detected);
-      }
-
-      window.addEventListener('message', handleMessage, false);
-
-      element = document.createElement('div');
-      element.className = 'solflare-wallet-detect-iframe';
-      element.innerHTML = `
-        <iframe src='${Solflare.DETECT_IFRAME_URL}?timeout=${timeout}' style='position: fixed; top: -9999px; left: -9999px; width: 0; height: 0; pointer-events: none; border: none;'></iframe>
-      `;
-      document.body.appendChild(element);
     });
   }
 
@@ -209,8 +187,6 @@ export default class Solflare extends EventEmitter {
         return;
       }
       case 'connect': {
-        this._collapseIframe();
-
         this._adapterInstance = new IframeAdapter(this._iframe!, event.data?.publicKey || '');
         this._adapterInstance.connect();
 
@@ -247,6 +223,25 @@ export default class Solflare extends EventEmitter {
     }
   }
 
+  private _handleResize = (data: SolflareIframeResizeMessage) => {
+    if (data.resizeMode === 'full') {
+      if (data.params.mode === 'fullscreen') {
+        this._expandIframe();
+      } else if (data.params.mode === 'hide') {
+        this._collapseIframe();
+      }
+    } else if (data.resizeMode === 'coordinates') {
+      if (this._iframe) {
+        this._iframe.style.top = isFinite(data.params.top as number) ? `${data.params.top}px` : '';
+        this._iframe.style.bottom = isFinite(data.params.bottom as number) ? `${data.params.bottom}px` : '';
+        this._iframe.style.left = isFinite(data.params.left as number) ? `${data.params.left}px` : '';
+        this._iframe.style.right = isFinite(data.params.right as number) ? `${data.params.right}px` : '';
+        this._iframe.style.width = isFinite(data.params.width as number) ? `${data.params.width}px` : (data.params.width as string);
+        this._iframe.style.height = isFinite(data.params.height as number) ? `${data.params.height}px` : (data.params.height as string);
+      }
+    }
+  }
+
   private _handleMessage = (event: MessageEvent) => {
     if (event.data?.channel !== 'solflareIframeToWalletAdapter') {
       return;
@@ -255,9 +250,13 @@ export default class Solflare extends EventEmitter {
     const data: SolflareIframeMessage = event.data.data || {};
 
     if (data.type === 'event') {
-      this._handleEvent(data.event!);
-    } else if (this._adapterInstance) {
-      this._adapterInstance.handleMessage(data);
+      this._handleEvent(data.event);
+    } else if (data.type === 'resize') {
+      this._handleResize(data);
+    } else if (data.type === 'response') {
+      if (this._adapterInstance) {
+        this._adapterInstance.handleMessage(data);
+      }
     }
   }
 
@@ -287,7 +286,7 @@ export default class Solflare extends EventEmitter {
     this._removeElement();
     this._removeDanglingElements();
 
-    let iframeUrl = `${Solflare.IFRAME_URL}?cluster=${encodeURIComponent(this._network)}&origin=${encodeURIComponent(window.location.origin)}`;
+    let iframeUrl = `${Solflare.IFRAME_URL}?cluster=${encodeURIComponent(this._network)}&origin=${encodeURIComponent(window.location.origin)}&version=1`;
     const preferredAdapter = this._getPreferredAdapter();
     if (preferredAdapter) {
       iframeUrl += `&adapter=${encodeURIComponent(preferredAdapter)}`;
@@ -319,6 +318,17 @@ export default class Solflare extends EventEmitter {
       this._iframe.style.width = '2px';
     }
   }
+
+  private _expandIframe = () => {
+    if (this._iframe) {
+      this._iframe.style.top = '0px';
+      this._iframe.style.bottom = '0px';
+      this._iframe.style.left = '0px';
+      this._iframe.style.right = '0px';
+      this._iframe.style.width = '100%';
+      this._iframe.style.height = '100%';
+    }
+  };
 
   private _getPreferredAdapter = () => {
     if (localStorage) {
