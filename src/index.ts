@@ -1,4 +1,4 @@
-import { Cluster, Transaction } from '@solana/web3.js';
+import { Cluster, Transaction, VersionedTransaction } from '@solana/web3.js';
 import {
   PromiseCallback,
   SolflareConfig,
@@ -10,6 +10,7 @@ import EventEmitter from 'eventemitter3';
 import WalletAdapter from './adapters/base';
 import WebAdapter from './adapters/web';
 import IframeAdapter from './adapters/iframe';
+import { isLegacyTransactionInstance } from './utils';
 
 export default class Solflare extends EventEmitter {
   private _network: Cluster = 'mainnet-beta';
@@ -81,16 +82,16 @@ export default class Solflare extends EventEmitter {
       throw new Error('Wallet not connected');
     }
 
-    const serializedMessage: Uint8Array = (transaction instanceof Transaction) ? transaction.serializeMessage() : transaction.message.serialize();
+    const serializedMessage: Uint8Array = isLegacyTransactionInstance(transaction) ? (transaction as Transaction).serializeMessage() : (transaction as VersionedTransaction).message.serialize();
 
     const signature = await this._adapterInstance!.signTransaction(serializedMessage);
 
-    if (transaction instanceof Transaction) {
-      transaction.addSignature(this.publicKey!, Buffer.from(signature));
+    if (isLegacyTransactionInstance(transaction)) {
+      (transaction as Transaction).addSignature(this.publicKey!, Buffer.from(signature));
     } else {
-      const signerPubkeys = transaction.message.staticAccountKeys.slice(
+      const signerPubkeys = (transaction as VersionedTransaction).message.staticAccountKeys.slice(
         0,
-        transaction.message.header.numRequiredSignatures,
+        (transaction as VersionedTransaction).message.header.numRequiredSignatures,
       );
       const signerIndex = signerPubkeys.findIndex((pubkey) => pubkey.equals(this.publicKey!));
       if (signerIndex >= 0) {
@@ -107,7 +108,7 @@ export default class Solflare extends EventEmitter {
     }
 
     const serializedMessages = transactions.map((transaction) => {
-      return (transaction instanceof Transaction) ? transaction.serializeMessage() : transaction.message.serialize();
+      return isLegacyTransactionInstance(transaction) ? (transaction as Transaction).serializeMessage() : (transaction as VersionedTransaction).message.serialize();
     });
 
     const signatures = await this._adapterInstance!.signAllTransactions(serializedMessages);
@@ -115,12 +116,12 @@ export default class Solflare extends EventEmitter {
     for (let i = 0; i < transactions.length; i++) {
       const transaction = transactions[i];
 
-      if (transaction instanceof Transaction) {
-        transaction.addSignature(this.publicKey!, Buffer.from(signatures[i]));
+      if (isLegacyTransactionInstance(transaction)) {
+        (transaction as Transaction).addSignature(this.publicKey!, Buffer.from(signatures[i]));
       } else {
-        const signerPubkeys = transaction.message.staticAccountKeys.slice(
+        const signerPubkeys = (transaction as VersionedTransaction).message.staticAccountKeys.slice(
           0,
-          transaction.message.header.numRequiredSignatures,
+          (transaction as VersionedTransaction).message.header.numRequiredSignatures,
         );
         const signerIndex = signerPubkeys.findIndex((pubkey) => pubkey.equals(this.publicKey!));
         if (signerIndex >= 0) {
