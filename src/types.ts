@@ -1,4 +1,6 @@
-import { Cluster } from '@solana/web3.js';
+import { Cluster, Transaction, VersionedTransaction } from '@solana/web3.js';
+
+export type TransactionOrVersionedTransaction = Transaction | VersionedTransaction;
 
 export interface SolflareConfig {
   network?: Cluster,

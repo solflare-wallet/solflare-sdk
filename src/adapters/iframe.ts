@@ -1,5 +1,5 @@
 import { MessageHandlers, SolflareIframeMessage, SolflareIframeRequest } from '../types';
-import { PublicKey, Transaction } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import WalletAdapter from './base';
 import { v4 as uuidv4 } from 'uuid';
 import bs58 from 'bs58';
@@ -33,45 +33,40 @@ export default class IframeAdapter extends WalletAdapter {
     });
   }
 
-  async signTransaction (transaction: Transaction): Promise<Transaction> {
+  async signTransaction (message: Uint8Array): Promise<Uint8Array> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
     try {
-      const { publicKey, signature } = await this._sendMessage({
+      const { signature } = await this._sendMessage({
         method: 'signTransaction',
         params: {
-          message: bs58.encode(transaction.serializeMessage())
+          message: bs58.encode(message)
         }
       }) as { publicKey: string, signature: string };
 
-      transaction.addSignature(new PublicKey(publicKey), bs58.decode(signature));
-
-      return transaction;
+      return bs58.decode(signature);
     } catch (e) {
       console.log(e);
       throw new Error('Failed to sign transaction');
     }
   }
 
-  async signAllTransactions (transactions: Transaction[]): Promise<Transaction[]> {
+  async signAllTransactions (messages: Uint8Array[]): Promise<Uint8Array[]> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
     try {
-      const { publicKey, signatures } = await this._sendMessage({
+      const { signatures } = await this._sendMessage({
         method: 'signAllTransactions',
         params: {
-          messages: transactions.map((transaction) => bs58.encode(transaction.serializeMessage()))
+          messages: messages.map((message) => bs58.encode(message))
         }
       }) as { publicKey: string, signatures: string[] };
 
-      return transactions.map((tx, id) => {
-        tx.addSignature(new PublicKey(publicKey), bs58.decode(signatures[id]));
-        return tx;
-      });
+      return signatures.map((signature) => bs58.decode(signature));
     } catch (e) {
       console.log(e);
       throw new Error('Failed to sign transactions');

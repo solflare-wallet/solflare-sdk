@@ -26,7 +26,7 @@
     "@babel/core": "^7.17.9",
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-react": "^7.16.7",
-    "@solana/web3.js": "^1.37.1",
+    "@solana/web3.js": "^1.62.1",
     "babel-loader": "^8.2.4",
     "core-js": "^3.21.1",
     "css-loader": "^5.2.7",
@@ -42,7 +42,7 @@
     "webpack-dev-server": "^4.8.1"
   },
   "peerDependencies": {
-    "@solana/web3.js": "^1.31.0"
+    "@solana/web3.js": "^1.61.0"
   },
   "dependencies": {
     "@project-serum/sol-wallet-adapter": "0.2.0",

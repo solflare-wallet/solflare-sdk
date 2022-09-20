@@ -3,7 +3,8 @@ import {
   PromiseCallback,
   SolflareConfig,
   SolflareIframeEvent,
-  SolflareIframeMessage
+  SolflareIframeMessage,
+  TransactionOrVersionedTransaction
 } from './types';
 import EventEmitter from 'eventemitter3';
 import WalletAdapter from './adapters/base';
@@ -75,20 +76,60 @@ export default class Solflare extends EventEmitter {
     this.emit('disconnect');
   }
 
-  async signTransaction (transaction: Transaction): Promise<Transaction> {
+  async signTransaction (transaction: TransactionOrVersionedTransaction): Promise<TransactionOrVersionedTransaction> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
-    return await this._adapterInstance!.signTransaction(transaction);
+    const serializedMessage: Uint8Array = (transaction instanceof Transaction) ? transaction.serializeMessage() : transaction.message.serialize();
+
+    const signature = await this._adapterInstance!.signTransaction(serializedMessage);
+
+    if (transaction instanceof Transaction) {
+      transaction.addSignature(this.publicKey!, Buffer.from(signature));
+    } else {
+      const signerPubkeys = transaction.message.staticAccountKeys.slice(
+        0,
+        transaction.message.header.numRequiredSignatures,
+      );
+      const signerIndex = signerPubkeys.findIndex((pubkey) => pubkey.equals(this.publicKey!));
+      if (signerIndex >= 0) {
+        transaction.signatures[signerIndex] = signature;
+      }
+    }
+
+    return transaction;
   }
 
-  async signAllTransactions (transactions: Transaction[]): Promise<Transaction[]> {
+  async signAllTransactions (transactions: TransactionOrVersionedTransaction[]): Promise<TransactionOrVersionedTransaction[]> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
-    return await this._adapterInstance!.signAllTransactions(transactions);
+    const serializedMessages = transactions.map((transaction) => {
+      return (transaction instanceof Transaction) ? transaction.serializeMessage() : transaction.message.serialize();
+    });
+
+    const signatures = await this._adapterInstance!.signAllTransactions(serializedMessages);
+
+    for (let i = 0; i < transactions.length; i++) {
+      const transaction = transactions[i];
+
+      if (transaction instanceof Transaction) {
+        transaction.addSignature(this.publicKey!, Buffer.from(signatures[i]));
+      } else {
+        const signerPubkeys = transaction.message.staticAccountKeys.slice(
+          0,
+          transaction.message.header.numRequiredSignatures,
+        );
+        const signerIndex = signerPubkeys.findIndex((pubkey) => pubkey.equals(this.publicKey!));
+        if (signerIndex >= 0) {
+          transaction.signatures[signerIndex] = signatures[i];
+        }
+      }
+    }
+
+    return transactions;
   }
 
   async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array> {

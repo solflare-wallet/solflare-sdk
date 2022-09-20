@@ -1,7 +1,8 @@
-import { Cluster, Transaction } from '@solana/web3.js';
+import { Cluster } from '@solana/web3.js';
 import WalletAdapter from './base';
 import { SolflareIframeMessage } from '../types';
 import Wallet from '@project-serum/sol-wallet-adapter';
+import bs58 from 'bs58';
 
 export default class WebAdapter extends WalletAdapter {
   private _instance: Wallet | null = null;
@@ -51,20 +52,28 @@ export default class WebAdapter extends WalletAdapter {
     await this._instance!.disconnect();
   }
 
-  async signTransaction (transaction: Transaction): Promise<Transaction> {
+  async signTransaction (message: Uint8Array): Promise<Uint8Array> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
-    return await this._instance!.signTransaction(transaction);
+    const response = (await this._instance!.sendRequest('signTransaction', {
+      message: bs58.encode(message)
+    })) as { publicKey: string; signature: string };
+
+    return bs58.decode(response.signature);
   }
 
-  async signAllTransactions (transactions: Transaction[]): Promise<Transaction[]> {
+  async signAllTransactions (messages: Uint8Array[]): Promise<Uint8Array[]> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
-    return await this._instance!.signAllTransactions(transactions);
+    const response = (await this._instance!.sendRequest('signAllTransactions', {
+      messages: messages.map((message) => bs58.encode(message))
+    })) as { publicKey: string; signatures: string[] };
+
+    return response.signatures.map((signature) => bs58.decode(signature));
   }
 
   async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
