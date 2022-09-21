@@ -23,9 +23,9 @@ export default class Solflare extends EventEmitter {
 
   private _flutterHandlerInterval: any = null;
 
-  // private static IFRAME_URL = 'https://connect.solflare.com/';
+  private static IFRAME_URL = 'https://connect.solflare.com/';
   // private static IFRAME_URL = 'http://localhost:3090/';
-  private static IFRAME_URL = 'https://feature-react-refactor.d3jmxkbfuqcbli.amplifyapp.com/';
+  // private static IFRAME_URL = 'https://feature-react-refactor.d3jmxkbfuqcbli.amplifyapp.com/';
 
   constructor (config?: SolflareConfig) {
     super();
@@ -171,6 +171,8 @@ export default class Solflare extends EventEmitter {
   }
 
   private _handleEvent = (event: SolflareIframeEvent) => {
+    console.log('_handleEvent', event);
+
     switch (event.type) {
       case 'connect_native_web': {
         this._collapseIframe();
@@ -187,6 +189,8 @@ export default class Solflare extends EventEmitter {
         return;
       }
       case 'connect': {
+        this._collapseIframe();
+
         this._adapterInstance = new IframeAdapter(this._iframe!, event.data?.publicKey || '');
         this._adapterInstance.connect();
 
@@ -213,6 +217,7 @@ export default class Solflare extends EventEmitter {
 
         return;
       }
+      // legacy event, use resize message type instead
       case 'collapse': {
         this._collapseIframe();
         return;

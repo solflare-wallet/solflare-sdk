@@ -57,7 +57,7 @@ export default class WebAdapter extends WalletAdapter {
       throw new Error('Wallet not connected');
     }
 
-    const response = (await this._instance!.sendRequest('signTransaction', {
+    const response = (await this._sendRequest('signTransaction', {
       message: bs58.encode(message)
     })) as { publicKey: string; signature: string };
 
@@ -69,7 +69,7 @@ export default class WebAdapter extends WalletAdapter {
       throw new Error('Wallet not connected');
     }
 
-    const response = (await this._instance!.sendRequest('signAllTransactions', {
+    const response = (await this._sendRequest('signAllTransactions', {
       messages: messages.map((message) => bs58.encode(message))
     })) as { publicKey: string; signatures: string[] };
 
@@ -88,6 +88,16 @@ export default class WebAdapter extends WalletAdapter {
   // @ts-ignore
   handleMessage = (data: SolflareIframeMessage) => {
     // nothing to do here
+  };
+
+  private _sendRequest = async (method, params) => {
+    if (this._instance!.sendRequest) {
+      return await this._instance!.sendRequest(method, params);
+    } else if (this._instance!._sendRequest) {
+      return await this._instance!._sendRequest(method, params);
+    } else {
+      throw new Error('Unsupported version of `@project-serum/sol-wallet-adapter`');
+    }
   };
 
   private _handleConnect = () => {
