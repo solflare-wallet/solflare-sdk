@@ -171,8 +171,6 @@ export default class Solflare extends EventEmitter {
   }
 
   private _handleEvent = (event: SolflareIframeEvent) => {
-    console.log('_handleEvent', event);
-
     switch (event.type) {
       case 'connect_native_web': {
         this._collapseIframe();
