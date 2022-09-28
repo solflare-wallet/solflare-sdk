@@ -1,6 +1,6 @@
 {
   "name": "@solflare-wallet/sdk",
-  "version": "1.1.0-rc2",
+  "version": "1.1.0",
   "description": "",
   "repository": "https://github.com/solflare-wallet/solflare-sdk",
   "author": "Solflare Developers <developers@solflare.com>",
