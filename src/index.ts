@@ -214,6 +214,17 @@ export default class Solflare extends EventEmitter {
 
         return;
       }
+      case 'accountChanged': {
+        if (event.data?.publicKey) {
+          this._adapterInstance = new IframeAdapter(this._iframe!, event.data.publicKey);
+          this._adapterInstance.connect();
+          this.emit('accountChanged', this.publicKey);
+        } else {
+          this.emit('accountChanged', undefined);
+        }
+
+        return;
+      }
       // legacy event, use resize message type instead
       case 'collapse': {
         this._collapseIframe();
