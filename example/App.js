@@ -36,6 +36,13 @@ export default class App extends Component {
 
       this.solflare.on('disconnect', this.handleDisconnected);
 
+      this.solflare.on('accountChanged', (publicKey) => {
+        console.log('accountChanged', publicKey);
+        if (!publicKey) {
+          this.handleDisconnected();
+        }
+      });
+
       this.setState({ connected: true });
     } catch (e) {
       console.log(e);
