@@ -304,6 +304,9 @@ export default class Solflare extends EventEmitter {
     if (preferredAdapter) {
       iframeUrl += `&adapter=${encodeURIComponent(preferredAdapter)}`;
     }
+    if (this._provider) {
+      iframeUrl += `&provider=${encodeURIComponent(this._provider)}`;
+    }
 
     this._element = document.createElement('div');
     this._element.className = 'solflare-wallet-adapter-iframe';
