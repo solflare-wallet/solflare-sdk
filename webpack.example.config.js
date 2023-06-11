@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlPlugin = require('html-webpack-plugin');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
 module.exports = (env = {}) => {
   return {
@@ -9,10 +10,6 @@ module.exports = (env = {}) => {
       path: path.resolve(__dirname, 'example', 'build'),
       publicPath: '/',
       filename: '[name].js'
-    },
-
-    node: {
-      fs: 'empty'
     },
 
     module: {
@@ -38,13 +35,13 @@ module.exports = (env = {}) => {
         template: './example/index.html',
         filename: 'index.html'
       }),
+      new NodePolyfillPlugin(),
     ],
 
     mode: 'development',
 
     optimization: {
-      namedModules: true,
-      noEmitOnErrors: true
+      emitOnErrors: false
     },
 
     target: 'web',

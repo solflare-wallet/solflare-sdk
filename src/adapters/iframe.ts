@@ -1,5 +1,5 @@
 import { MessageHandlers, SolflareIframeRequest, SolflareIframeResponseMessage } from '../types';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, SendOptions } from '@solana/web3.js';
 import WalletAdapter from './base';
 import { v4 as uuidv4 } from 'uuid';
 import bs58 from 'bs58';
@@ -48,8 +48,7 @@ export default class IframeAdapter extends WalletAdapter {
 
       return bs58.decode(signature);
     } catch (e) {
-      console.log(e);
-      throw new Error('Failed to sign transaction');
+      throw new Error(e?.toString?.() || 'Failed to sign transaction');
     }
   }
 
@@ -68,8 +67,27 @@ export default class IframeAdapter extends WalletAdapter {
 
       return signatures.map((signature) => bs58.decode(signature));
     } catch (e) {
-      console.log(e);
-      throw new Error('Failed to sign transactions');
+      throw new Error(e?.toString?.() || 'Failed to sign transactions');
+    }
+  }
+
+  async signAndSendTransaction (transaction: Uint8Array, options?: SendOptions): Promise<string> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    try {
+      const result = await this._sendMessage({
+        method: 'signAndSendTransaction',
+        params: {
+          transaction: bs58.encode(transaction),
+          options
+        }
+      });
+
+      return result as string;
+    } catch (e) {
+      throw new Error(e?.toString?.() || 'Failed to sign and send transaction');
     }
   }
 
@@ -89,8 +107,7 @@ export default class IframeAdapter extends WalletAdapter {
 
       return Uint8Array.from(bs58.decode(result as string));
     } catch (e) {
-      console.log(e);
-      throw new Error('Failed to sign message');
+      throw new Error(e?.toString?.() || 'Failed to sign message');
     }
   }
 
