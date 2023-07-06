@@ -1,4 +1,4 @@
-import { Cluster, Transaction, VersionedTransaction } from '@solana/web3.js';
+import { Cluster, SendOptions, Transaction, VersionedTransaction } from '@solana/web3.js';
 import {
   PromiseCallback,
   SolflareConfig,
@@ -25,6 +25,7 @@ export default class Solflare extends EventEmitter {
 
   private static IFRAME_URL = 'https://connect.solflare.com/';
   // private static IFRAME_URL = 'http://localhost:3090/';
+  // private static IFRAME_URL = 'https://feature-sign-and-send.dsstucoizpomc.amplifyapp.com/';
 
   constructor (config?: SolflareConfig) {
     super();
@@ -132,6 +133,16 @@ export default class Solflare extends EventEmitter {
     }
 
     return transactions;
+  }
+
+  async signAndSendTransaction (transaction: TransactionOrVersionedTransaction, options?: SendOptions): Promise<string> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    const serializedTransaction: Uint8Array = isLegacyTransactionInstance(transaction) ? (transaction as Transaction).serialize({ verifySignatures: false, requireAllSignatures: false }) : (transaction as VersionedTransaction).serialize();
+
+    return await this._adapterInstance!.signAndSendTransaction(serializedTransaction, options);
   }
 
   async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array> {

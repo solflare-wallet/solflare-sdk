@@ -1,7 +1,7 @@
-import { Cluster } from '@solana/web3.js';
+import { Cluster, SendOptions } from '@solana/web3.js';
 import WalletAdapter from './base';
 import { SolflareIframeMessage } from '../types';
-import Wallet from '@project-serum/sol-wallet-adapter';
+import Wallet from './WalletProvider';
 import bs58 from 'bs58';
 
 export default class WebAdapter extends WalletAdapter {
@@ -74,6 +74,19 @@ export default class WebAdapter extends WalletAdapter {
     })) as { publicKey: string; signatures: string[] };
 
     return response.signatures.map((signature) => bs58.decode(signature));
+  }
+
+  async signAndSendTransaction (transaction: Uint8Array, options?: SendOptions): Promise<string> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    const response = (await this._sendRequest('signAndSendTransaction', {
+      transaction: bs58.encode(transaction),
+      options
+    })) as { publicKey: string; signature: string };
+
+    return response.signature;
   }
 
   async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'hex'): Promise<Uint8Array> {
