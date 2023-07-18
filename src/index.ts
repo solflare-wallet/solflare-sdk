@@ -23,9 +23,9 @@ export default class Solflare extends EventEmitter {
 
   private _flutterHandlerInterval: any = null;
 
-  private static IFRAME_URL = 'https://connect.solflare.com/';
+  // private static IFRAME_URL = 'https://connect.solflare.com/';
   // private static IFRAME_URL = 'http://localhost:3090/';
-  // private static IFRAME_URL = 'https://feature-sign-and-send.dsstucoizpomc.amplifyapp.com/';
+  private static IFRAME_URL = 'https://metamask-poc.dsstucoizpomc.amplifyapp.com/';
 
   constructor (config?: SolflareConfig) {
     super();
