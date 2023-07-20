@@ -25,7 +25,7 @@ export default class Solflare extends EventEmitter {
 
   // private static IFRAME_URL = 'https://connect.solflare.com/';
   // private static IFRAME_URL = 'http://localhost:3090/';
-  private static IFRAME_URL = 'https://metamask-poc.dsstucoizpomc.amplifyapp.com/';
+  private static IFRAME_URL = 'https://connect-metamask-demo.solflare.com/';
 
   constructor (config?: SolflareConfig) {
     super();
