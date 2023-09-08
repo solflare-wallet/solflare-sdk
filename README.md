@@ -14,6 +14,8 @@ wallet.on('disconnect', () => console.log('disconnected'));
 try {
   await wallet.connect();
 
+  const signature = await wallet.signAndSendTransaction(new Transaction());
+
   const transaction = await wallet.signTransaction(new Transaction());
 
   const transactions = await wallet.signAllTransactions([ new Transaction(), new Transaction() ]);
@@ -42,8 +44,9 @@ class Solflare extends EventEmitter {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
 
-  signTransaction(transaction: Transaction): Promise<Transaction>;
-  signAllTransactions(transactions: Transaction[]): Promise<Transaction[]>;
+  signAndSendTransaction(transaction: TransactionOrVersionedTransaction, options: SendOptions | undefined): Promise<string>;
+  signTransaction(transaction: TransactionOrVersionedTransaction): Promise<TransactionOrVersionedTransaction>;
+  signAllTransactions(transactions: TransactionOrVersionedTransaction[]): Promise<TransactionOrVersionedTransaction[]>;
   signMessage(data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array>;
   sign(data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array>; // for SOL Wallet Adapter compatibility
 }
