@@ -26,6 +26,7 @@ export default class Solflare extends EventEmitter {
   private static IFRAME_URL = 'https://connect.solflare.com/';
   // private static IFRAME_URL = 'http://localhost:3090/';
   // private static IFRAME_URL = 'https://feature-sign-and-send.dsstucoizpomc.amplifyapp.com/';
+  private static SDK_VERSION = 2;
 
   constructor (config?: SolflareConfig) {
     super();
@@ -182,6 +183,19 @@ export default class Solflare extends EventEmitter {
 
   private _handleEvent = (event: SolflareIframeEvent) => {
     switch (event.type) {
+      case 'get_origin': {
+        this._iframe?.contentWindow?.postMessage({
+          channel: 'solflareWalletAdapterToIframe',
+          data: {
+            type: 'origin',
+            event: {
+              origin: window.location.origin,
+              uuid: event.data?.uuid,
+            }
+          }
+        }, '*');
+        return;
+      }
       case 'connect_native_web': {
         this._collapseIframe();
 
@@ -310,7 +324,7 @@ export default class Solflare extends EventEmitter {
     this._removeElement();
     this._removeDanglingElements();
 
-    let iframeUrl = `${Solflare.IFRAME_URL}?cluster=${encodeURIComponent(this._network)}&origin=${encodeURIComponent(window.location.origin)}&version=1`;
+    let iframeUrl = `${Solflare.IFRAME_URL}?cluster=${encodeURIComponent(this._network)}&origin=${encodeURIComponent(window.location.origin)}&version=${encodeURIComponent(Solflare.SDK_VERSION)}`;
     const preferredAdapter = this._getPreferredAdapter();
     if (preferredAdapter) {
       iframeUrl += `&adapter=${encodeURIComponent(preferredAdapter)}`;
