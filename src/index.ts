@@ -12,10 +12,12 @@ import WalletAdapter from './adapters/base';
 import WebAdapter from './adapters/web';
 import IframeAdapter from './adapters/iframe';
 import { isLegacyTransactionInstance } from './utils';
+import { VERSION } from './version';
 
 export default class Solflare extends EventEmitter {
   private _network: Cluster = 'mainnet-beta';
   private _provider: string | null = null;
+  private _iframeParams: Record<string, any> = {};
   private _adapterInstance: WalletAdapter | null = null;
   private _element: HTMLElement | null = null;
   private _iframe: HTMLIFrameElement | null = null;
@@ -24,8 +26,6 @@ export default class Solflare extends EventEmitter {
   private _flutterHandlerInterval: any = null;
 
   private static IFRAME_URL = 'https://connect.solflare.com/';
-  // private static IFRAME_URL = 'http://localhost:3090/';
-  // private static IFRAME_URL = 'https://feature-sign-and-send.dsstucoizpomc.amplifyapp.com/';
 
   constructor (config?: SolflareConfig) {
     super();
@@ -36,6 +36,12 @@ export default class Solflare extends EventEmitter {
 
     if (config?.provider) {
       this._provider = config?.provider;
+    }
+
+    if (config?.params) {
+      this._iframeParams = {
+        ...config?.params
+      };
     }
   }
 
@@ -310,14 +316,28 @@ export default class Solflare extends EventEmitter {
     this._removeElement();
     this._removeDanglingElements();
 
-    let iframeUrl = `${Solflare.IFRAME_URL}?cluster=${encodeURIComponent(this._network)}&origin=${encodeURIComponent(window.location.origin)}&version=1`;
+    const params: Record<string, any> = {
+      ...this._iframeParams,
+      cluster: this._network || 'mainnet-beta',
+      origin: window.location.origin || '',
+      title: document.title || '',
+      version: 1,
+      sdkVersion: VERSION || 'unknown',
+    };
+
     const preferredAdapter = this._getPreferredAdapter();
     if (preferredAdapter) {
-      iframeUrl += `&adapter=${encodeURIComponent(preferredAdapter)}`;
+      params.adapter = preferredAdapter;
     }
     if (this._provider) {
-      iframeUrl += `&provider=${encodeURIComponent(this._provider)}`;
+      params.provider = this._provider;
     }
+
+    const queryString = Object.keys(params)
+      .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+      .join('&');
+
+    const iframeUrl = `${Solflare.IFRAME_URL}?${queryString}`;
 
     this._element = document.createElement('div');
     this._element.className = 'solflare-wallet-adapter-iframe';
