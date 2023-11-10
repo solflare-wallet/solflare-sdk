@@ -9,6 +9,7 @@
       "dom.iterable",
       "esnext"
     ],
+    "allowJs": true,
     "declaration": true,
     "moduleResolution": "node",
     "noUnusedLocals": true,

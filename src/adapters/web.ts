@@ -104,10 +104,10 @@ export default class WebAdapter extends WalletAdapter {
   };
 
   private _sendRequest = async (method, params) => {
-    if (this._instance!.sendRequest) {
-      return await this._instance!.sendRequest(method, params);
-    } else if (this._instance!._sendRequest) {
-      return await this._instance!._sendRequest(method, params);
+    if ((this._instance as any)?.sendRequest) {
+      return await (this._instance as any).sendRequest(method, params);
+    } else if (this._instance?._sendRequest) {
+      return await this._instance._sendRequest(method, params);
     } else {
       throw new Error('Unsupported version of `@project-serum/sol-wallet-adapter`');
     }
