@@ -33,39 +33,39 @@ export default class IframeAdapter extends WalletAdapter {
     });
   }
 
-  async signTransaction (message: Uint8Array): Promise<Uint8Array> {
+  async signTransaction (transaction: Uint8Array): Promise<Uint8Array> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
     try {
-      const { signature } = await this._sendMessage({
+      const signedTransaction = await this._sendMessage({
         method: 'signTransaction',
         params: {
-          message: bs58.encode(message)
+          transaction: bs58.encode(transaction)
         }
-      }) as { publicKey: string, signature: string };
+      }) as string;
 
-      return bs58.decode(signature);
+      return bs58.decode(signedTransaction);
     } catch (e) {
       throw new Error(e?.toString?.() || 'Failed to sign transaction');
     }
   }
 
-  async signAllTransactions (messages: Uint8Array[]): Promise<Uint8Array[]> {
+  async signAllTransactions (transactions: Uint8Array[]): Promise<Uint8Array[]> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
     try {
-      const { signatures } = await this._sendMessage({
+      const signedTransactions = await this._sendMessage({
         method: 'signAllTransactions',
         params: {
-          messages: messages.map((message) => bs58.encode(message))
+          transactions: transactions.map((transaction) => bs58.encode(transaction))
         }
-      }) as { publicKey: string, signatures: string[] };
+      }) as string[];
 
-      return signatures.map((signature) => bs58.decode(signature));
+      return signedTransactions.map((transaction) => bs58.decode(transaction));
     } catch (e) {
       throw new Error(e?.toString?.() || 'Failed to sign transactions');
     }
