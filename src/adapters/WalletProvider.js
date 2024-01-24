@@ -178,38 +178,6 @@ export default class Wallet extends EventEmitter {
       publicKey,
     };
   };
-
-  signTransaction = async (transaction) => {
-    const response = await this._sendRequest('signTransaction', {
-      message: bs58.encode(transaction.serializeMessage()),
-    });
-    const signature = bs58.decode(response.signature);
-    const publicKey = new PublicKey(response.publicKey);
-    transaction.addSignature(publicKey, signature);
-    return transaction;
-  };
-
-  signAllTransactions = async (transactions) => {
-    const response = await this._sendRequest('signAllTransactions', {
-      messages: transactions.map((tx) => bs58.encode(tx.serializeMessage())),
-    });
-    const signatures = response.signatures.map((s) => bs58.decode(s));
-    const publicKey = new PublicKey(response.publicKey);
-    transactions = transactions.map((tx, idx) => {
-      tx.addSignature(publicKey, signatures[idx]);
-      return tx;
-    });
-    return transactions;
-  };
-
-  signAndSendTransaction = async (transaction, options = {}) => {
-    const response = await this._sendRequest('signAndSendTransaction', {
-      transaction: bs58.encode(transaction.serialize({ requireAllSignatures: false, verifySignatures: false })),
-      ...options,
-    });
-    const { publicKey, signature } = response;
-    return { publicKey: new PublicKey(publicKey), signature };
-  };
 }
 
 function isString(a) {
