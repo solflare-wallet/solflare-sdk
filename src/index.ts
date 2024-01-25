@@ -90,24 +90,13 @@ export default class Solflare extends EventEmitter {
       throw new Error('Wallet not connected');
     }
 
-    const serializedMessage: Uint8Array = isLegacyTransactionInstance(transaction) ? (transaction as Transaction).serializeMessage() : (transaction as VersionedTransaction).message.serialize();
+    const serializedTransaction = isLegacyTransactionInstance(transaction) ?
+      Uint8Array.from(transaction.serialize({ verifySignatures: false, requireAllSignatures: false })) :
+      transaction.serialize();
 
-    const signature = await this._adapterInstance!.signTransaction(serializedMessage);
+    const signedTransaction = await this._adapterInstance!.signTransaction(serializedTransaction);
 
-    if (isLegacyTransactionInstance(transaction)) {
-      (transaction as Transaction).addSignature(this.publicKey!, Buffer.from(signature));
-    } else {
-      const signerPubkeys = (transaction as VersionedTransaction).message.staticAccountKeys.slice(
-        0,
-        (transaction as VersionedTransaction).message.header.numRequiredSignatures,
-      );
-      const signerIndex = signerPubkeys.findIndex((pubkey) => pubkey.equals(this.publicKey!));
-      if (signerIndex >= 0) {
-        transaction.signatures[signerIndex] = signature;
-      }
-    }
-
-    return transaction;
+    return isLegacyTransactionInstance(transaction) ? Transaction.from(signedTransaction) : VersionedTransaction.deserialize(signedTransaction);
   }
 
   async signAllTransactions (transactions: TransactionOrVersionedTransaction[]): Promise<TransactionOrVersionedTransaction[]> {
@@ -115,30 +104,21 @@ export default class Solflare extends EventEmitter {
       throw new Error('Wallet not connected');
     }
 
-    const serializedMessages = transactions.map((transaction) => {
-      return isLegacyTransactionInstance(transaction) ? (transaction as Transaction).serializeMessage() : (transaction as VersionedTransaction).message.serialize();
+    const serializedTransactions = transactions.map((transaction) => {
+      return isLegacyTransactionInstance(transaction) ?
+        Uint8Array.from(transaction.serialize({ verifySignatures: false, requireAllSignatures: false })) :
+        transaction.serialize();
     });
 
-    const signatures = await this._adapterInstance!.signAllTransactions(serializedMessages);
+    const signedTransactions = await this._adapterInstance!.signAllTransactions(serializedTransactions);
 
-    for (let i = 0; i < transactions.length; i++) {
-      const transaction = transactions[i];
-
-      if (isLegacyTransactionInstance(transaction)) {
-        (transaction as Transaction).addSignature(this.publicKey!, Buffer.from(signatures[i]));
-      } else {
-        const signerPubkeys = (transaction as VersionedTransaction).message.staticAccountKeys.slice(
-          0,
-          (transaction as VersionedTransaction).message.header.numRequiredSignatures,
-        );
-        const signerIndex = signerPubkeys.findIndex((pubkey) => pubkey.equals(this.publicKey!));
-        if (signerIndex >= 0) {
-          transaction.signatures[signerIndex] = signatures[i];
-        }
-      }
+    if (signedTransactions.length !== transactions.length) {
+      throw new Error('Failed to sign all transactions');
     }
 
-    return transactions;
+    return signedTransactions.map((signedTransaction, index) => {
+      return isLegacyTransactionInstance(transactions[index]) ? Transaction.from(signedTransaction) : VersionedTransaction.deserialize(signedTransaction);
+    });
   }
 
   async signAndSendTransaction (transaction: TransactionOrVersionedTransaction, options?: SendOptions): Promise<string> {
@@ -146,7 +126,7 @@ export default class Solflare extends EventEmitter {
       throw new Error('Wallet not connected');
     }
 
-    const serializedTransaction: Uint8Array = isLegacyTransactionInstance(transaction) ? (transaction as Transaction).serialize({ verifySignatures: false, requireAllSignatures: false }) : (transaction as VersionedTransaction).serialize();
+    const serializedTransaction: Uint8Array = isLegacyTransactionInstance(transaction) ? transaction.serialize({ verifySignatures: false, requireAllSignatures: false }) : transaction.serialize();
 
     return await this._adapterInstance!.signAndSendTransaction(serializedTransaction, options);
   }

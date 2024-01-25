@@ -52,28 +52,28 @@ export default class WebAdapter extends WalletAdapter {
     await this._instance!.disconnect();
   }
 
-  async signTransaction (message: Uint8Array): Promise<Uint8Array> {
+  async signTransaction (transaction: Uint8Array): Promise<Uint8Array> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
-    const response = (await this._sendRequest('signTransaction', {
-      message: bs58.encode(message)
-    })) as { publicKey: string; signature: string };
+    const { transaction: signedTransaction } = (await this._sendRequest('signTransactionV2', {
+      transaction: bs58.encode(transaction)
+    })) as { transaction: string };
 
-    return bs58.decode(response.signature);
+    return bs58.decode(signedTransaction);
   }
 
-  async signAllTransactions (messages: Uint8Array[]): Promise<Uint8Array[]> {
+  async signAllTransactions (transactions: Uint8Array[]): Promise<Uint8Array[]> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
-    const response = (await this._sendRequest('signAllTransactions', {
-      messages: messages.map((message) => bs58.encode(message))
-    })) as { publicKey: string; signatures: string[] };
+    const { transactions: signedTransactions } = (await this._sendRequest('signAllTransactionsV2', {
+      transactions: transactions.map((transaction) => bs58.encode(transaction))
+    })) as { transactions: string[] };
 
-    return response.signatures.map((signature) => bs58.decode(signature));
+    return signedTransactions.map((transaction) => bs58.decode(transaction));
   }
 
   async signAndSendTransaction (transaction: Uint8Array, options?: SendOptions): Promise<string> {

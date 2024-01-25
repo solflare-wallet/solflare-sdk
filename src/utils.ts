@@ -1,6 +1,6 @@
 import { TransactionOrVersionedTransaction } from './types';
-import { VersionedTransaction } from '@solana/web3.js';
+import { Transaction, VersionedTransaction } from '@solana/web3.js';
 
-export function isLegacyTransactionInstance (transaction: TransactionOrVersionedTransaction) {
+export function isLegacyTransactionInstance (transaction: TransactionOrVersionedTransaction): transaction is Transaction {
   return (transaction as VersionedTransaction).version === undefined;
 }
