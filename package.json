@@ -14,10 +14,10 @@
     "start": "npm-run-all -p start:esm start:cjs",
     "build:esm": "tsc",
     "build:cjs": "tsc --project tsconfig.cjs.json",
-    "build": "rimraf lib && npm run build:esm && npm run build:cjs && node scripts/version.js",
+    "build": "rimraf lib && pnpm run build:esm && pnpm run build:cjs && node scripts/version.js",
     "example:start": "webpack serve --config webpack.example.config.js",
-    "deploy": "npm run build && npm publish --access public",
-    "deploy:next": "npm run build && npm publish --access public --tag next"
+    "deploy": "pnpm run build && pnpm publish --access public --no-git-checks",
+    "deploy:next": "pnpm run build && pnpm publish --access public --no-git-checks --tag next"
   },
   "files": [
     "src/",
@@ -49,6 +49,7 @@
     "@solana/web3.js": "*"
   },
   "dependencies": {
+    "@solana/kit": "8.3.0",
     "bs58": "5.0.0",
     "eventemitter3": "5.0.4",
     "uuid": "9.0.1"
