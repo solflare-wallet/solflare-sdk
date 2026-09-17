@@ -1,0 +1,6 @@
+minimumReleaseAge: 7200 # 5 days
+savePrefix: ''
+allowBuilds:
+  bufferutil: false
+  core-js: false
+  utf-8-validate: false
