@@ -1,17 +1,17 @@
-import { Cluster, SendOptions, Transaction, VersionedTransaction } from '@solana/web3.js';
+import type { Cluster, SendOptions } from '@solana/web3.js';
 import {
   PromiseCallback,
   SolflareConfig,
   SolflareIframeEvent,
   SolflareIframeMessage,
   SolflareIframeResizeMessage,
-  TransactionOrVersionedTransaction
+  type Transaction
 } from './types';
 import EventEmitter from 'eventemitter3';
 import WalletAdapter from './adapters/base';
 import WebAdapter from './adapters/web';
 import IframeAdapter from './adapters/iframe';
-import { isLegacyTransactionInstance } from './utils';
+import { transactionPipeline } from './utils';
 import { VERSION } from './version';
 
 export default class Solflare extends EventEmitter {
@@ -85,50 +85,40 @@ export default class Solflare extends EventEmitter {
     this.emit('disconnect');
   }
 
-  async signTransaction (transaction: TransactionOrVersionedTransaction): Promise<TransactionOrVersionedTransaction> {
+  async signTransaction (transaction: Transaction): Promise<Transaction> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
-    const serializedTransaction = isLegacyTransactionInstance(transaction) ?
-      Uint8Array.from(transaction.serialize({ verifySignatures: false, requireAllSignatures: false })) :
-      transaction.serialize();
-
-    const signedTransaction = await this._adapterInstance!.signTransaction(serializedTransaction);
-
-    return isLegacyTransactionInstance(transaction) ? Transaction.from(signedTransaction) : VersionedTransaction.deserialize(signedTransaction);
-  }
-
-  async signAllTransactions (transactions: TransactionOrVersionedTransaction[]): Promise<TransactionOrVersionedTransaction[]> {
-    if (!this.connected) {
-      throw new Error('Wallet not connected');
-    }
-
-    const serializedTransactions = transactions.map((transaction) => {
-      return isLegacyTransactionInstance(transaction) ?
-        Uint8Array.from(transaction.serialize({ verifySignatures: false, requireAllSignatures: false })) :
-        transaction.serialize();
-    });
-
-    const signedTransactions = await this._adapterInstance!.signAllTransactions(serializedTransactions);
-
-    if (signedTransactions.length !== transactions.length) {
-      throw new Error('Failed to sign all transactions');
-    }
-
-    return signedTransactions.map((signedTransaction, index) => {
-      return isLegacyTransactionInstance(transactions[index]) ? Transaction.from(signedTransaction) : VersionedTransaction.deserialize(signedTransaction);
+    return transactionPipeline(transaction, (transactionBytes) => {
+      return this._adapterInstance!.signTransaction(transactionBytes);
     });
   }
 
-  async signAndSendTransaction (transaction: TransactionOrVersionedTransaction, options?: SendOptions): Promise<string> {
+  async signAllTransactions (transactions: Transaction[]): Promise<Transaction[]> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
-    const serializedTransaction: Uint8Array = isLegacyTransactionInstance(transaction) ? transaction.serialize({ verifySignatures: false, requireAllSignatures: false }) : transaction.serialize();
+    return transactionPipeline(transactions, async (transactionsBytes) => {
+      const signedTransactionsBytes = await this._adapterInstance!.signAllTransactions(transactionsBytes);
 
-    return await this._adapterInstance!.signAndSendTransaction(serializedTransaction, options);
+      if (signedTransactionsBytes.length !== transactionsBytes.length) {
+        throw new Error('Failed to sign all transactions');
+      }
+
+      return signedTransactionsBytes;
+    });
+  }
+
+  async signAndSendTransaction (transaction: Transaction, options?: SendOptions): Promise<string> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    return transactionPipeline(transaction, (transactionBytes) => {
+      return this._adapterInstance!.signAndSendTransaction(transactionBytes, options);
+    }, { decode: false });
   }
 
   async signMessage (data: Uint8Array, display: 'hex' | 'utf8' = 'utf8'): Promise<Uint8Array> {
