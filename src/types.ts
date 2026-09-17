@@ -1,8 +1,8 @@
 import { Cluster, Transaction as LegacyTransaction, VersionedTransaction } from '@solana/web3.js';
-import { Transaction as TransactionKit } from '@solana/kit';
+import type { Transaction as SolanaKitTransaction } from '@solana/kit';
 
 
-export type Transaction = LegacyTransaction | VersionedTransaction | TransactionKit;
+export type Transaction = LegacyTransaction | VersionedTransaction | SolanaKitTransaction;
 
 export interface SolflareConfig {
   network?: Cluster;

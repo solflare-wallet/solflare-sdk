@@ -1,11 +1,11 @@
-import { Transaction as Web3Transaction, VersionedTransaction } from '@solana/web3.js';
+import { Transaction as LegacyTransaction, VersionedTransaction } from '@solana/web3.js';
 import { Transaction as SolanaKitTransaction, getTransactionEncoder, getTransactionDecoder } from '@solana/kit';
-import { Transaction } from './types';
+import type { Transaction } from './types';
 
 
 type TransactionOrigin = 'legacy' | 'versioned' | 'kit';
 
-export const isLegacyTransaction = (transaction: Transaction): transaction is Web3Transaction =>
+export const isLegacyTransaction = (transaction: Transaction): transaction is LegacyTransaction =>
   (transaction as VersionedTransaction).version === undefined;
 
 export const isFromSolanaKitTransaction = (
@@ -28,7 +28,7 @@ export const getTransactionOrigin = (transaction: Transaction): TransactionOrigi
 const encodeTransaction = (origin: TransactionOrigin, transaction: Transaction): Uint8Array => {
   switch (origin) {
     case 'legacy':
-      return (transaction as Web3Transaction).serialize({
+      return (transaction as LegacyTransaction).serialize({
         requireAllSignatures: false,
         verifySignatures: false,
       });
@@ -42,7 +42,7 @@ const encodeTransaction = (origin: TransactionOrigin, transaction: Transaction):
 const decodeTransaction = (origin: TransactionOrigin, bytes: Uint8Array): Transaction => {
   switch (origin) {
     case 'legacy':
-      return Web3Transaction.from(bytes);
+      return LegacyTransaction.from(bytes);
     case 'kit':
       return getTransactionDecoder().decode(bytes);
     case 'versioned':
