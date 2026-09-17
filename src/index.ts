@@ -85,6 +85,22 @@ export default class Solflare extends EventEmitter {
     this.emit('disconnect');
   }
 
+  async signRawTransaction (transaction: Uint8Array): Promise<Uint8Array> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    return this._adapterInstance!.signTransaction(transaction);
+  }
+
+  async signAllRawTransactions (transactions: Uint8Array[]): Promise<Uint8Array[]> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    return this._adapterInstance!.signAllTransactions(transactions);
+  }
+
   async signTransaction (transaction: TransactionOrVersionedTransaction): Promise<TransactionOrVersionedTransaction> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
